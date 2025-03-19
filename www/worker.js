@@ -1,20 +1,21 @@
-import init, { isEven } from './pkg/wasm_app.js';
+import init, { WasmApp } from "./pkg/wasm_app.js";
 
 async function init_wasm_in_worker() {
-  console.log('Initializing worker');
-
-  // Load the wasm file by awaiting the Promise returned by `wasm_bindgen`.
   await init();
-  console.log('Worker intialized');
+  console.log("Let's go");
 
-  // Set callback to handle messages passed to the worker.
-  self.onmessage = async e => {
-      console.log('Message received from main thread: ', e.data);
-      let result = isEven(e.data);
+  // sanity check, works
+  let error = new Error("Error inside worker");
+  console.info("Expecing Error inside worker, js");
+  console.error("Error inside worker js:", error);
 
-      // Send response back to be handled by callback in main thread.
-      self.postMessage(result);
+  let ch = new MessageChannel();
+  ch.port1.onmessage = (ev) => {
+    // expecting this to be logged twice, as 2 messages are posted in wasm
+    console.warn("Received from wasm: ", ev.data);
   };
-};
+
+  let _app = new WasmApp(ch.port2);
+}
 
 init_wasm_in_worker();

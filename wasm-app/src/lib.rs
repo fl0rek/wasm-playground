@@ -1,45 +1,46 @@
 use wasm_bindgen::prelude::*;
+use web_sys::MessagePort;
 
-/// The application state
-struct AppState {
-    counter: u32,
-}
-
-impl AppState {
-    fn new() -> Self {
-        Self { counter: 0 }
-    }
-
-    fn counter(&mut self) -> u32 {
-        let ret = self.counter;
-        self.counter += 1;
-        ret
-    }
-}
-
-/// Wraps the Rust application state and exposes it to JavaScript
 #[wasm_bindgen]
 pub struct WasmApp {
-    state: AppState,
+    _port: MessagePort,
 }
 
 #[wasm_bindgen]
 #[allow(non_snake_case)]
 impl WasmApp {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self {
-            state: AppState::new(),
-        }
-    }
+    pub fn new(port: MessagePort) -> Self {
+        error_doing_weird_stuff();
 
-    pub fn counter(&mut self) -> JsValue {
-        JsValue::from(self.state.counter())
+        let err1 = JsError::new("JsError inside worker, rust");
+        // doesn't seem to be sent at all?
+        port.post_message(&err1.into()).expect("sent message");
+
+        // is sent successfully, so above does not panic
+        port.post_message(&"Hello, World".into())
+            .expect("sent message");
+
+        Self { _port: port }
     }
 }
 
-/// To be called by the worker
-#[wasm_bindgen]
-pub fn isEven(n: u32) -> JsValue {
-    JsValue::from(n % 2 == 0)
+fn error_doing_weird_stuff() {
+    let err0 = JsError::new("JsError inside worker, rust");
+    web_sys::console::info_1(&"<Expecting JsError>".into());
+    // doesn't seem to be printed ??
+    web_sys::console::error_2(&"JsError inside worker".into(), &err0.into());
+    web_sys::console::info_1(&"</Expecting JsError>".into());
+}
+
+#[cfg(test)]
+mod browser_tests {
+    use super::*;
+
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn test_error() {
+        error_doing_weird_stuff();
+    }
 }
