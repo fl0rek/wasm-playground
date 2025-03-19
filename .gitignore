@@ -1,2 +1,8 @@
-.vscode/
+# Rust artifacts
+pkg/
 target/
+
+# Node and Webpack artifacts and configs
+dist/
+node_modules/
+package-lock.json
